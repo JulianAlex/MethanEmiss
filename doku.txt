@@ -1,0 +1,60 @@
+Alle Rechnungen wurden mit Feature Scaling mit dem RobustScaler gemacht. 
+
+Das Target war die Methan-Emission (nicht der logarithmus davon)
+
+Als Features wurde die Temperatur T oder T + T**2 verwendet und natürlich die anderen Features. 
+Features: time, temp, wind speed, wind direction
+
+Lineare Features:  Wind_speed, Temp, Temp**2
+
+Periodische Var.:  Wind_direction (dW_sin + dW_cos), time (h_sin + h_cos; t_sin + t_cos) 
+
+In total 9 features. 
+
+
+Date Time Temp Wind_dir Wind_spd EF_CH4 LN_EF h_sin h_cos days t_sin t_cos dW_sin dW_cos dt group season
+X = df.drop(["Date", "Time", "Wind_dir", "EF_CH4", "LN_EF", "days", "dt", "group", "season"], axis = 1).values  #Features 
+y = df["EF_CH4"].values  # Targets 
+
+
+--------------------------------------------------------------------
+            | RobustScaler,  T         || RobustScaler,  T + T**2  |        
+--------------------------------------------------------------------
+            |   time   | proc |  LR    ||   time   | proc |  LR    | 
+--------------------------------------------------------------------
+ LinReg     |   2 min  |   1  |        ||   2 min  |   1  |        |
+ GradBoost  |  18 min  |   1  |        ||  19 min  |   1  |        |
+ RandFor    |  97 min  |   1  |        || 220 min  |   1  |        |
+------------------------------------------------------------------
+ Ridge      |  20 min  |   1  |        ||  20 min  |   1  |        |
+ GausPro    | 150 min  |   1  |        || 150 min  |   1  |        |
+ SVM        |  11 h    |  32  |        ||  17 h    |  16  |        |
+===================================================================
+ fixANN     |  19 min  |   1  |  0.1   ||  17 min  |   1  |  0.1   |  <= zu klein 
+            |  50 min  |   1  |  0.01  ||  41 min  |   1  |  0.01  |  <= ok
+            |  82 min  |   1  |  0.001 ||  83 min  |   1  |  0.001 |  <= top [wurde fuer die Abbildungen verwendet]
+-------------------------------------------------------------------
+ ANN        |   8 h    |  16  |  0.1   ||   7 h    |  16  |  0.1   |  <= zu klein
+            |  13 h    |  16  |  0.01  ||  12 h    |  16  |  0.01  |  <= ok
+            |  24 h    |  16  |  0.001 ||  23 h    |  16  |  0.001 |  <= top [wurde fuer die Abbildungen verwendet]
+--------------------------------------------------------------------
+ 
+
+fixANN wurde mit einem hidden layer und 4 Neuronen verwendet
+
+ANN, GridSearch mit [1, 2, 4, 8] hidden layern und [8, 16, 32, 64] Neuronen.  
+
+grid = {'hidden_layer_sizes': ( (8), (8,8), (8,8,8,8), (8,8,8,8, 8,8,8,8), 
+                               (16), (16,16), (16,16,16,16), (16,16,16,16, 16,16,16,16), 
+                               (32), (32,32), (32,32,32,32), (32,32,32,32, 32,32,32,32),
+                               (64), (64,64), (64,64,64,64), (64,64,64,64, 64,64,64,64))}
+
+===================================================================================================================
+
+Korrelation zwischen input-Parametern und Output-Parameter:
+
+Pearson Correl.Coeff. (T, EF):         0.082
+Pearson Correl.Coeff. (T, ln_EF):      0.074
+Pearson Correl.Coeff. (T**2, EF):      0.197
+Pearson Correl.Coeff. (T**2, ln_EF):   0.183
+
